@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -32,11 +34,25 @@ func hello(c echo.Context) error {
 }
 
 func dbTest() string {
-	_, err := sqlConnect()
+	db, err := sqlConnect()
 	if err != nil {
 		panic(err.Error())
 	} else {
-		return "DB接続成功"
+		fmt.Println("DB接続成功")
+	}
+	defer db.Close()
+
+	error := db.Create(&Users{
+		Name:     "テスト太郎",
+		Age:      "18",
+		Address:  "東京都千代田区",
+		UpdateAt: getDate(),
+	}).Error
+	if error != nil {
+		panic(err.Error())
+	} else {
+		fmt.Println("データ追加成功")
+		return "データ追加成功"
 	}
 }
 
@@ -50,4 +66,18 @@ func sqlConnect() (database *gorm.DB, err error) {
 
 	CONNECT := USER + ":" + PASS + "@" + PROTOCOL + "/" + DBNAME + "?charset=utf8&parseTime=true&loc=Asia%2FTokyo"
 	return gorm.Open(DBMS, CONNECT)
+}
+
+type Users struct {
+	ID       int
+	Name     string `json:"name"`
+	Age      string `json:"age"`
+	Address  string `json:"address"`
+	UpdateAt string `json:"updateAt" sql:"not null;type:date"`
+}
+
+func getDate() string {
+	const layout = "2006-01-02 15:04:05"
+	now := time.Now()
+	return now.Format(layout)
 }
